@@ -1,0 +1,62 @@
+---
+- name: create exporter temporary directory
+  file:
+    path: /tmp/node_exporter
+    state: directory
+
+- name: download node exporter install package
+  get_url:
+    url: https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+    dest: /tmp/node_exporter/node_exporter-1.0.1.linux-amd64.tar.gz
+    checksum: sha256:3369b76cd2b0ba678b6d618deab320e565c3d93ccb5c2a0d5db51a53857768ae
+  environment:
+    http_proxy: "{{ proxy.http | default('') }}"
+    https_proxy: "{{ proxy.https | default(proxy.http) }}"
+
+- name: extract compressed node exporter file
+  unarchive:
+    src: /tmp/node_exporter/node_exporter-1.0.1.linux-amd64.tar.gz
+    remote_src: yes
+    dest: /tmp/node_exporter
+
+- name: add node exporter group
+  group:
+    name: node_exporter
+    system: yes
+    state: present
+
+- name: add node_exporter user
+  user:
+    name: node_exporter
+    group: node_exporter
+    system: yes
+    comment: Node Exporter
+    shell: /usr/bin/false
+    state: present
+    create_home: no
+
+- name: move binary files to right places
+  copy:
+    src: "/tmp/node_exporter/node_exporter-1.0.1.linux-amd64/{{ item }}"
+    remote_src: yes
+    dest: "/usr/local/bin/{{ item }}"
+    owner: node_exporter
+    group: node_exporter
+    mode: '0755'
+  with_items:
+    - node_exporter
+
+- name: configure node exporter systemd unit
+  template:
+    src: node_exporter.service.j2
+    dest: /lib/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - restart node exporter service
+
+- name: remove node exporter leftovers
+  file:
+    path: /tmp/node_exporter
+    state: absent
