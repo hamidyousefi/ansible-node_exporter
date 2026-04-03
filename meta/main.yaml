@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: node_exporter
+  namespace: hamidyousefi
+  author: Hamid Yousefi
+  description: An Ansible role for setting up a basic Node Exporter environment on Debian systems.
+  license: GPL-3.0-only
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+
+  galaxy_tags:
+    - grafana
+    - monitoring
+
+dependencies: []

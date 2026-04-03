@@ -7,7 +7,7 @@ After=network-online.target
 User=node_exporter
 Group=node_exporter
 Type=simple
-ExecStart=/usr/local/bin/node_exporter --web.listen-address={{ ansible_host.address }}:9100
+ExecStart=/usr/local/bin/node_exporter --web.listen-address={{ (ansible_all_ipv4_addresses | select('match', '^10\\.0\\.') | list | first) | default('') }}:9100
 
 [Install]
 WantedBy=multi-user.target

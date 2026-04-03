@@ -1,0 +1,68 @@
+---
+- name: Set node exporter archive name
+  ansible.builtin.set_fact:
+    node_exporter_archive: "node_exporter-{{ node_exporter_version }}.linux-amd64"
+
+- name: Create exporter temporary directory
+  ansible.builtin.file:
+    path: /tmp/node_exporter
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Download node exporter install package
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/{{ node_exporter_archive }}.tar.gz"
+    dest: "/tmp/node_exporter/{{ node_exporter_archive }}.tar.gz"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Extract compressed node exporter file
+  ansible.builtin.unarchive:
+    src: "/tmp/node_exporter/{{ node_exporter_archive }}.tar.gz"
+    dest: /tmp/node_exporter
+    remote_src: true
+
+- name: Add node exporter group
+  ansible.builtin.group:
+    name: node_exporter
+    system: true
+    state: present
+
+- name: Add node exporter user
+  ansible.builtin.user:
+    name: node_exporter
+    group: node_exporter
+    system: true
+    comment: Node Exporter
+    shell: /usr/sbin/nologin
+    state: present
+    create_home: false
+
+- name: Install node exporter binary
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter/{{ node_exporter_archive }}/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  notify:
+    - Restart node exporter service
+
+- name: Configure node exporter systemd unit
+  ansible.builtin.template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Restart node exporter service
+
+- name: Remove leftovers
+  ansible.builtin.file:
+    path: /tmp/node_exporter
+    state: absent
